@@ -13,16 +13,16 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" >
-    <meta name="author" content="�[����">
+    <meta name="author" content="房忠玉">
     <meta name="renderer" content="webkit">
-    <meta name="copyright" content="�[����">
+    <meta name="copyright" content="房忠玉">
     
     <meta name="keywords" content="hexo,hexo-theme,hexo-blog">
     
     <meta name="description" content="">
     <meta http-equiv="Cache-control" content="no-cache">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
-    <title>test · FangZhongYu-BouTyuuGyoku Studio</title>
+    <title>webSocket · FangZhongYu-BouTyuuGyoku Studio</title>
     <style type="text/css">
     @font-face {
         font-family: 'Oswald-Regular';
@@ -217,7 +217,7 @@
                 <a href="/" >FangZhongYu-BouTyuuGyoku Studio.</a>
             </div>
             <div class="post-title">
-                <a href="#" class="post-name">test</a>
+                <a href="#" class="post-name">webSocket</a>
             </div>
     </div>
     
@@ -247,7 +247,7 @@ height:50vh;
         <h1 class="intro-title">
             <!-- 主页  -->
             
-            test
+            webSocket
             <!-- 404 -->
             
         </h1>
@@ -266,7 +266,7 @@ height:50vh;
                 
                 
                     <div class="post-intro-read">
-                        <span>字数统计: <span class="post-count word-count">0</span>阅读时长: <span class="post-count reading-time">1 min</span></span>
+                        <span>字数统计: <span class="post-count word-count">1.9k</span>阅读时长: <span class="post-count reading-time">10 min</span></span>
                     </div>
                 
                 <div class="post-intro-meta">
@@ -395,15 +395,350 @@ height:50vh;
         <div class="container container-unloaded">
             <main class="main post-page">
     <article class="article-entry">
-        
+        <p>Spring4.0以后引入了对websocket的支持 。相信你已经搭建了SpringMVC的开发框架。<br>首先jar依赖</p>
+<pre><code>&lt;dependency&gt;  
+   &lt;groupId&gt;org.springframework&lt;/groupId&gt;  
+   &lt;artifactId&gt;spring-websocket&lt;/artifactId&gt;  
+   &lt;version&gt;4.0.1.RELEASE&lt;/version&gt;  
+ &lt;/dependency&gt;
+ &lt;dependency&gt;  
+   &lt;groupId&gt;org.springframework&lt;/groupId&gt;  
+   &lt;artifactId&gt;spring-messaging&lt;/artifactId&gt;  
+   &lt;version&gt;4.0.1.RELEASE&lt;/version&gt;  
+ &lt;/dependency&gt;
+</code></pre><p>spring-mvc.xml需要配置，前后台分离开发事需要范文后台接口的路由：</p>
+<pre><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;beans xmlns=&quot;http://www.springframework.org/schema/beans&quot;
+xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;
+xmlns:context=&quot;http://www.springframework.org/schema/context&quot;
+xmlns:websocket=&quot;http://www.springframework.org/schema/websocket&quot;
+xsi:schemaLocation=&quot;http://www.springframework.org/schema/beans
+     http://www.springframework.org/schema/beans/spring-beans-4.3.xsd
+     http://www.springframework.org/schema/context
+     http://www.springframework.org/schema/context/spring-context-4.3.xsd
+     http://www.springframework.org/schema/websocket
+     http://www.springframework.org/schema/websocket/spring-websocket-4.3.xsd &quot;&gt;
+
+&lt;!--     &lt;bean id=&quot;websocket&quot; class=&quot;com.chat.system.websocket.handler.WebsocketEndPoint&quot; /&gt;
+
+&lt;websocket:handlers&gt;
+    &lt;websocket:mapping path=&quot;/websocket&quot; handler=&quot;websocket&quot; /&gt;
+    &lt;websocket:handshake-interceptors&gt;
+        &lt;bean class=&quot;com.chat.system.websocket.HandshakeInterceptor&quot; /&gt;
+    &lt;/websocket:handshake-interceptors&gt;
+&lt;/websocket:handlers&gt; --&gt;
+
+&lt;bean id=&quot;websocket&quot; class=&quot;co.jp.chatsys.modules.sys.websocket.demo.WebSocketHander&quot; /&gt;
+
+&lt;websocket:handlers allowed-origins=&quot;*&quot; &gt;
+    &lt;websocket:mapping path=&quot;/echo&quot; handler=&quot;websocket&quot; /&gt;
+    &lt;websocket:handshake-interceptors&gt;
+        &lt;bean class=&quot;co.jp.chatsys.modules.sys.websocket.demo.HandshakeInterceptor&quot; /&gt;
+    &lt;/websocket:handshake-interceptors&gt;
+&lt;/beans&gt;
+</code></pre><p>HandshakeInterceptor.java</p>
+<pre><code>import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.springframework.http.server.ServerHttpRequest;
+import org.springframework.http.server.ServerHttpResponse;
+import org.springframework.http.server.ServletServerHttpRequest;
+import org.springframework.web.socket.WebSocketHandler;
+import org.springframework.web.socket.server.support.HttpSessionHandshakeInterceptor;
+
+
+public class HandshakeInterceptor extends HttpSessionHandshakeInterceptor {
+// 握手前
+@Override
+public boolean beforeHandshake(ServerHttpRequest request,
+        ServerHttpResponse response, WebSocketHandler wsHandler,
+        Map&lt;String, Object&gt; attributes) throws Exception {
+
+    System.out.println(&quot;++++++++++++++++ HandshakeInterceptor: beforeHandshake  ++++++++++++++&quot;+attributes);
+    if (request instanceof ServletServerHttpRequest) {
+        HttpServletRequest servletRequest = ((ServletServerHttpRequest) request).getServletRequest();
+        String userId = ((ServletServerHttpRequest) request).getServletRequest().getParameter(&quot;userId&quot;);
+        String toUserId = ((ServletServerHttpRequest) request).getServletRequest().getParameter(&quot;toUserId&quot;);
+
+        attributes.put(&quot;WEBSOCKET_USERNAME&quot;, userId);
+        attributes.put(&quot;TO_WEBSOCKET_USERNAME&quot;, toUserId);
+        servletRequest.getSession().setAttribute(&quot;WEBSOCKET_USERNAME&quot;, userId);
+        servletRequest.getSession().setAttribute(&quot;TO_WEBSOCKET_USERNAME&quot;, toUserId);
+    }
+
+    return super.beforeHandshake(request, response, wsHandler, attributes);
+}
+
+// 握手后
+@Override
+public void afterHandshake(ServerHttpRequest request,
+        ServerHttpResponse response, WebSocketHandler wsHandler,
+        Exception ex) {
+
+    System.out.println(&quot;++++++++++++++++ HandshakeInterceptor: afterHandshake  ++++++++++++++&quot;);
+
+    super.afterHandshake(request, response, wsHandler, ex);
+}
+}
+</code></pre><p>WebSocketConfig.java</p>
+<pre><code>import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
+import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
+
+
+//@Configuration
+//@EnableWebSocket // 开启websocket
+public class WebSocketConfig implements WebSocketConfigurer {
+@Override
+public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+    registry.addHandler(new WebSocketHander(), &quot;/echo&quot;).addInterceptors(new HandshakeInterceptor()); // 支持websocket的访问链接
+    registry.addHandler(new WebSocketHander(), &quot;/sockjs/echo&quot;).addInterceptors(new HandshakeInterceptor()).withSockJS(); // 不支持websocket的访问链接
+}
+}
+</code></pre><p>WebSocketHander.java</p>
+<pre><code>import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import net.sf.json.JSONObject;
+
+import org.apache.log4j.Logger;
+import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketHandler;
+import org.springframework.web.socket.WebSocketMessage;
+import org.springframework.web.socket.WebSocketSession;
+
+import co.jp.chatsys.modules.boss.entity.ChatInfo;
+import co.jp.chatsys.modules.boss.entity.MasterDictData;
+import co.jp.chatsys.modules.boss.entity.SettingGreetings;
+import co.jp.chatsys.modules.sys.utils.ChatServerUtil;
+
+public class WebSocketHander implements WebSocketHandler {
+
+private static final Logger logger = Logger.getLogger(WebSocketHander.class);
+private static final Map&lt;String,WebSocketSession&gt; sessions = new HashMap&lt;String, WebSocketSession&gt;();
+private static final ArrayList&lt;WebSocketSession&gt; users = new ArrayList&lt;WebSocketSession&gt;();
+// 初次链接成功执行
+@Override
+public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+    logger.debug(&quot;链接成功......&quot;);
+    users.add(session);
+    String userId = (String) session.getAttributes().get(&quot;WEBSOCKET_USERNAME&quot;);
+    String toUserId = (String) session.getAttributes().get(&quot;TO_WEBSOCKET_USERNAME&quot;);
+    if (userId != null &amp;&amp; toUserId != null) {
+
+        // 根据自己的业务需求写初次握手后的逻辑
+        // 例如取出聊天记录
+        sendMessageToUser(userId, toUserId, masterDictData.getLabel(), userType, roomNum, ymdhms);
+    }
+}
+
+// 接受前台传送消息处理消息
+@Override
+public void handleMessage(WebSocketSession webSocketSession, WebSocketMessage&lt;?&gt; webSocketMessage)
+        throws Exception {
+    Date day=new Date();
+    SimpleDateFormat df = new SimpleDateFormat(&quot;yyyyMMddHHmmss&quot;);
+    String ymdhms = df.format(day);
+    String userId = (String) webSocketSession.getAttributes().get(&quot;WEBSOCKET_USERNAME&quot;);
+    String toUserId = (String) webSocketSession.getAttributes().get(&quot;TO_WEBSOCKET_USERNAME&quot;);
+    sendMessageToUser(userId, toUserId, webSocketMessage.getPayload(), type, roomNum, ymdhms);
+    // 根据业务需求，
+    // 例如发送完成后可以调用Isert数据库
+
+}
+
+@Override
+public void handleTransportError(WebSocketSession webSocketSession, Throwable throwable) throws Exception {
+    if (webSocketSession.isOpen()) {
+        webSocketSession.close();
+    }
+    logger.debug(&quot;链接出错，关闭链接......&quot;);
+    users.remove(webSocketSession);
+}
+
+@Override
+public void afterConnectionClosed(WebSocketSession webSocketSession, CloseStatus closeStatus) throws Exception {
+    logger.debug(&quot;链接关闭......&quot; + closeStatus.toString());
+    users.remove(webSocketSession);
+}
+
+@Override
+public boolean supportsPartialMessages() {
+    return false;
+}
+
+/**
+ * 给所有在线用户发送消息
+ *
+ * @param message
+ */
+public void sendMessageToUsers(TextMessage message) {
+    for (WebSocketSession user : users) {
+        try {
+            if (user.isOpen()) {
+                user.sendMessage(message);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+/**
+ * 给某个用户发送消息
+ *
+ * @param userName
+ * @param message
+ */
+public void sendMessageToUser(String userId, String toUserId, Object message, String type, String roomNum,String ymdhms) {
+    for (WebSocketSession user : users) {
+        if (user.getAttributes().get(&quot;WEBSOCKET_USERNAME&quot;).equals(userId) &amp;&amp; user.getAttributes().get(&quot;TO_WEBSOCKET_USERNAME&quot;).equals(toUserId) &amp;&amp; user.getAttributes().get(&quot;ROOM_NUM&quot;).equals(roomNum)) {
+            try {
+                if (user.isOpen()) {
+                    Map&lt;String,Object&gt; dataMap = new HashMap&lt;String, Object&gt;();
+                    dataMap.put(&quot;mesKbn&quot;, type);
+                    dataMap.put(&quot;message&quot;, (String) message);
+                    dataMap.put(&quot;date&quot;, ymdhms.substring(0, 4) + &quot;-&quot; + ymdhms.substring(4, 6) + &quot;-&quot; + ymdhms.substring(6, 8) + &quot; &quot;+ ymdhms.substring(8, 10)+&quot;:&quot;+ymdhms.substring(10, 12));
+                    String dataStr = JSONObject.fromObject(dataMap).toString();
+                    TextMessage  returnMessage = new TextMessage(dataStr);
+                    user.sendMessage(returnMessage);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else if (user.getAttributes().get(&quot;TO_WEBSOCKET_USERNAME&quot;).equals(userId) &amp;&amp; user.getAttributes().get(&quot;WEBSOCKET_USERNAME&quot;).equals(toUserId) &amp;&amp; user.getAttributes().get(&quot;ROOM_NUM&quot;).equals(roomNum)) {
+            try {
+                if (user.isOpen()) {
+                    Map&lt;String,Object&gt; dataMap = new HashMap&lt;String, Object&gt;();
+                    dataMap.put(&quot;mesKbn&quot;, type);
+                    dataMap.put(&quot;message&quot;, (String) message);
+                    dataMap.put(&quot;date&quot;, ymdhms.substring(0, 4) + &quot;-&quot; + ymdhms.substring(4, 6) + &quot;-&quot; + ymdhms.substring(6, 8) + &quot; &quot;+ ymdhms.substring(8, 10)+&quot;:&quot;+ymdhms.substring(10, 12));
+                    String dataStr = JSONObject.fromObject(dataMap).toString();
+                    TextMessage  returnMessage = new TextMessage(dataStr);
+                    user.sendMessage(returnMessage);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+    }
+}
+}
+</code></pre><p>后台代码也就以上这些<br>到前台VUE更简单<br>前台也需要一个socket来得到后台的通知，HTML5就自带了一个</p>
+<pre><code>&lt;template&gt;
+  &lt;div class=&quot;background&quot;&gt;
+    &lt;div id=&quot;main&quot; class=&quot;inner&quot;&gt;
+
+      &lt;div class=&quot;chat-wrap&quot;&gt;
+        &lt;!--聊天对话显示--&gt;
+        &lt;div class=&quot;chat-box show-box&quot;&gt;
+          &lt;div class=&quot;chat-list&quot; id=&quot;chatWindow&quot; style=&quot;visibility: visible;&quot;&gt;
+            &lt;ul&gt;
+              &lt;li v-for=&quot;item in datamsg&quot;&gt;
+                &lt;div :class=&quot;[&apos;status-read&apos;,item.mesKbn==&apos;1&apos;?&apos;item-myself&apos;:&apos;item-friend&apos;]&quot;&gt;
+                  &lt;div class=&quot;figure&quot;&gt;
+                    &lt;img v-show=&quot;item.mesKbn==&apos;0&apos;&quot;
+                         :src=&quot;toUser.toUserPhoto&quot;
+                         alt=&quot;&quot;&gt;
+                  &lt;/div&gt;
+                  &lt;div class=&quot;myFigure&quot;&gt;
+                    &lt;img v-show=&quot;item.mesKbn==&apos;1&apos;&quot;
+                         :src=&quot;user.userPhoto&quot;
+                         alt=&quot;&quot;&gt;
+                  &lt;/div&gt;
+                  &lt;div class=&quot;text&quot;&gt;
+                    &lt;div v-if=&quot;item.mesKbn==&apos;0&apos;&quot; class=&quot;status1&quot; :style=&quot;{ backgroundPosition: -80+&apos;px &apos;+0} &quot;&gt;{{item.date}}&lt;/div&gt;
+                    &lt;div v-else=&quot;item.mesKbn==&apos;1&apos;&quot; class=&quot;status&quot; :style=&quot;{ backgroundPosition: -80+&apos;px &apos;+0} &quot;&gt;{{item.date}}&lt;/div&gt;
+                    &lt;div v-emotion=&quot;item.message&quot;&gt;&lt;/div&gt;
+                  &lt;/div&gt;
+                &lt;/div&gt;
+              &lt;/li&gt;
+            &lt;/ul&gt;
+          &lt;/div&gt;
+          &lt;!--用户输入部分--&gt;
+          &lt;div class=&quot;chat-editor&quot;&gt;
+            &lt;el-input type=&quot;textarea&quot; :rows=&quot;6&quot; placeholder=&quot;请输入内容&quot; v-model=&quot;message&quot;
+                      @keyup.ctrl.enter.native=&quot;sendMsg(message)&quot;&gt;
+            &lt;/el-input&gt;
+            &lt;div class=&quot;chat-op&quot;&gt;&lt;span class=&quot;tip&quot;&gt;按Ctrl+Enter键发送，按Enter键换行&lt;/span&gt;
+              &lt;button :class=&quot;[&apos;btn&apos;, &apos;btn-send&apos;,message==&apos;&apos;?&apos;btn-disabled&apos;:&apos;&apos; ]&quot; :disabled=&quot;message==&apos;&apos;&quot;
+                      @click=&quot;sendMsg(message)&quot;&gt;发送
+              &lt;/button&gt;
+            &lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script&gt;
+  import {CHAT_HOST} from &apos;../../../build/config_host&apos;;
+  export default {
+    data() {
+      return {
+        websock: null,
+        datamsg: [],
+        userId:&apos;&apos;,
+        toUserId:&apos;&apos;,
+        hostUrl:&apos;&apos;
+      }
+    },
+    methods: {
+      initWebSocket(){ //初始化weosocket
+        //ws地址
+        const wsuri = this.hostUrl+&apos;/echo?userId=&apos;+ this.userId + &apos;&amp;toUserId=&apos; + this.toUserId
+        this.websock = new WebSocket(wsuri);
+        this.websock.onmessage = this.websocketonmessage;
+        this.websock.onclose = this.websocketclose;
+      },
+      websocketonmessage(e){ //数据接收
+        this.datamsg.push(JSON.parse(e.data));
+      },
+      sendMsg(agentData){//数据发送
+        if (/^\s*$/.test(this.message)) {
+          alert(&quot;请不要发送空消息&quot;)
+        } else if (this.message.length &gt; 200) {
+          alert(&quot;请不要超过200个字&quot;)
+        } else {
+          this.websock.send(agentData);
+          this.message = &quot;&quot;;
+        }
+      },
+      websocketclose(e){  //关闭
+        console.log(&quot;connection closed (&quot; + e.code + &quot;)&quot;);
+      },
+    },
+    created() {
+      this.hostUrl = CHAT_HOST
+      this.userId = window.localStorage.getItem(&quot;userId&quot;);
+      this.toUserId = window.localStorage.getItem(&quot;toUserId&quot;);
+    },
+  }
+&lt;/script&gt;
+
+&lt;style&gt;
+&lt;/style&gt;
+</code></pre><p>config_host.js</p>
+<pre><code>export const CHAT_HOST = &quot;ws://localhost:8080/bossjobchat&quot;
+</code></pre><p>画面：</p>
+<p><img src="./liaotian1.png" style="width: 70%; heigth: 70%"><br><img src="./liaotian2.png" style="width: 70%; heigth: 70%"><br><img src="./liaotian3.png" style="width: 70%; heigth: 70%"></p>
+
     </article>
     <!-- license  -->
     
         <div class="license-wrapper">
-            <p>原文作者：<a href="https://github.com/FangZhongYu521">�[����</a>
-            <p>原文链接：<a href="https://github.com/FangZhongYu521/2018/10/17/test/">https://github.com/FangZhongYu521/2018/10/17/test/</a>
-            <p>发表日期：<a href="https://github.com/FangZhongYu521/2018/10/17/test/">October 17th 2018, 2:26:09 pm</a>
-            <p>更新日期：<a href="https://github.com/FangZhongYu521/2018/10/17/test/">October 17th 2018, 2:26:09 pm</a>
+            <p>原文作者：<a href="https://github.com/FangZhongYu521">房忠玉</a>
+            <p>原文链接：<a href="https://github.com/FangZhongYu521/2018/10/17/webSocket/">https://github.com/FangZhongYu521/2018/10/17/webSocket/</a>
+            <p>发表日期：<a href="https://github.com/FangZhongYu521/2018/10/17/webSocket/">October 17th 2018, 2:26:09 pm</a>
+            <p>更新日期：<a href="https://github.com/FangZhongYu521/2018/10/17/webSocket/">October 29th 2018, 6:26:11 pm</a>
             <p>版权声明：本文采用<a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/">知识共享署名-非商业性使用 4.0 国际许可协议</a>进行许可</p>
         </div>
     
@@ -597,7 +932,12 @@ top:50vh;
     
     
         <li class="archive-post-item">
-            <span class="archive-post-date">10/17</span><a class="archive-post-title" href= "/2018/10/17/test/" >test</a>
+            <span class="archive-post-date">10/17</span><a class="archive-post-title" href= "/2018/10/17/webSocket/" >webSocket</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">10/15</span><a class="archive-post-title" href= "/2018/10/15/test-my-site/" >test_my_site</a>
         </li>
     
     
@@ -612,20 +952,6 @@ top:50vh;
     
         <li class="archive-post-item">
             <span class="archive-post-date">Invalid date</span><a class="archive-post-title" href= "/2018/10/15/hello-world/" >Hello World</a>
-        </li>
-    
-    
-    
-    
-    
-        </ul>
-    
-    <div class="archive-year"> 2018 </div>
-    <ul class="year-list">
-    
-    
-        <li class="archive-post-item">
-            <span class="archive-post-date">10/15</span><a class="archive-post-title" href= "/2018/10/15/test-my-site/" >test_my_site</a>
         </li>
     
     </div>
@@ -675,7 +1001,7 @@ jsonContent:
     <script>
     var siteMeta = {
         root: "/",
-        author: "�[����"
+        author: "房忠玉"
     }
 </script>
     <!-- CDN failover -->
